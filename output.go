@@ -32,9 +32,8 @@ func WriteOutputSVG(svg string, outputPath string) error {
 	return os.WriteFile(outputPath, []byte(svg), 0o644)
 }
 
-// WritePNGFromSource renders a Mermaid diagram to PNG using Chrome/Chromium
-// headless for pixel-perfect output. Returns an error if no browser is found
-// (use WriteOutputPNG with a pre-rendered SVG for the pure-Go fallback).
+// WritePNGFromSource renders a Mermaid diagram to PNG using the pure-Go renderer.
+// It parses the Mermaid code, generates SVG, and rasterizes it to PNG.
 func WritePNGFromSource(mermaidCode string, outputPath string) error {
 	if strings.TrimSpace(mermaidCode) == "" {
 		return fmt.Errorf("mermaid code is empty")
@@ -42,33 +41,23 @@ func WritePNGFromSource(mermaidCode string, outputPath string) error {
 	if _, parseErr := ParseMermaid(mermaidCode); parseErr != nil {
 		return parseErr
 	}
-	return renderPNGWithBrowser(mermaidCode, outputPath, 0, 0)
-}
-
-// WritePNGFromSourceWithFallback is like WritePNGFromSource but falls back to
-// the pure-Go SVG rasterizer when no browser is available. The pure-Go output
-// has significantly lower fidelity (no foreignObject support, limited CSS).
-func WritePNGFromSourceWithFallback(mermaidCode string, outputPath string) error {
-	if strings.TrimSpace(mermaidCode) == "" {
-		return fmt.Errorf("mermaid code is empty")
-	}
-	if _, parseErr := ParseMermaid(mermaidCode); parseErr != nil {
-		return parseErr
-	}
-	if browserErr := renderPNGWithBrowser(mermaidCode, outputPath, 0, 0); browserErr == nil {
-		return nil
-	}
-	svg, err := RenderWithOptions(mermaidCode, DefaultRenderOptions().WithAllowApproximate(true))
+	svg, err := RenderWithOptions(mermaidCode, DefaultRenderOptions())
 	if err != nil {
 		return err
 	}
 	return writeOutputPNG(svg, outputPath, 0, 0)
 }
 
-// HasBrowser returns true if a Chrome/Chromium browser is available for
-// high-fidelity rendering.
+// WritePNGFromSourceWithFallback is an alias for WritePNGFromSource.
+// Deprecated: Use WritePNGFromSource directly.
+func WritePNGFromSourceWithFallback(mermaidCode string, outputPath string) error {
+	return WritePNGFromSource(mermaidCode, outputPath)
+}
+
+// HasBrowser is deprecated and always returns false.
+// The library no longer requires or uses a browser for rendering.
 func HasBrowser() bool {
-	return chromePath() != ""
+	return false
 }
 
 func WriteOutputPNG(svg string, outputPath string) error {
@@ -106,15 +95,12 @@ type svgViewBox struct {
 }
 
 func rasterizeSVGToImage(svg string, width int, height int) (*image.NRGBA, error) {
-	return rasterizeSVGToImageLegacy(svg, width, height)
-}
-
-func rasterizeSVGToImageLegacy(svg string, width int, height int) (*image.NRGBA, error) {
-	icon, err := parseIconRobust(svg)
+	prepared := prepareSVGForRasterizer(svg)
+	icon, err := parseIconRobust(prepared)
 	if err != nil {
 		return nil, fmt.Errorf("parse svg: %w", err)
 	}
-	viewBox, hasViewBox := parseSVGViewBox(svg)
+	viewBox, hasViewBox := parseSVGViewBox(prepared)
 	icon.SetTarget(0, 0, float64(width), float64(height))
 
 	img := image.NewNRGBA(image.Rect(0, 0, width, height))
@@ -124,6 +110,109 @@ func rasterizeSVGToImageLegacy(svg string, width int, height int) (*image.NRGBA,
 	icon.Draw(dasher, 1.0)
 	overlaySVGText(img, svg, width, height, viewBox, hasViewBox)
 	return img, nil
+}
+
+// prepareSVGForRasterizer transforms SVG to be oksvg-compatible:
+//   - Replaces percentage/missing width/height with absolute pixel values from viewBox
+//   - Expands viewBox to encompass all content (e.g. cluster labels above y=0)
+//   - Strips <foreignObject> blocks (text is overlaid separately)
+func prepareSVGForRasterizer(svg string) string {
+	svg = expandViewBoxToContent(svg)
+	svg = fixSVGRootDimensions(svg)
+	return svg
+}
+
+var svgRootTagPattern = regexp.MustCompile(`(?i)(<svg\b)([^>]*)(>)`)
+var svgWidthAttrPattern = regexp.MustCompile(`(?i)\bwidth\s*=\s*"([^"]*)"`)
+var svgHeightAttrPattern = regexp.MustCompile(`(?i)\bheight\s*=\s*"([^"]*)"`)
+
+func fixSVGRootDimensions(svg string) string {
+	viewBox, ok := parseSVGViewBox(svg)
+	if !ok || viewBox.W <= 0 || viewBox.H <= 0 {
+		return svg
+	}
+	rootMatch := svgRootTagPattern.FindStringSubmatchIndex(svg)
+	if rootMatch == nil {
+		return svg
+	}
+	rootTag := svg[rootMatch[0]:rootMatch[6]]
+	wStr := formatFloat(viewBox.W)
+	hStr := formatFloat(viewBox.H)
+
+	newTag := rootTag
+	if m := svgWidthAttrPattern.FindStringSubmatchIndex(newTag); m != nil {
+		valStart := m[2]
+		valEnd := m[3]
+		val := newTag[valStart:valEnd]
+		if strings.Contains(val, "%") || val == "0" {
+			newTag = newTag[:valStart] + wStr + newTag[valEnd:]
+		}
+	}
+	if m := svgHeightAttrPattern.FindStringSubmatchIndex(newTag); m != nil {
+		valStart := m[2]
+		valEnd := m[3]
+		val := newTag[valStart:valEnd]
+		if strings.Contains(val, "%") || val == "0" {
+			newTag = newTag[:valStart] + hStr + newTag[valEnd:]
+		}
+	} else {
+		closing := strings.LastIndex(newTag, ">")
+		if closing > 0 {
+			newTag = newTag[:closing] + ` height="` + hStr + `"` + newTag[closing:]
+		}
+	}
+	return svg[:rootMatch[0]] + newTag + svg[rootMatch[6]:]
+}
+
+// expandViewBoxToContent scans for translate transforms in the SVG and
+// expands the viewBox so that all content (including elements positioned
+// above y=0, like subgraph cluster labels) fits within the raster canvas.
+func expandViewBoxToContent(svg string) string {
+	viewBox, ok := parseSVGViewBox(svg)
+	if !ok || viewBox.W <= 0 || viewBox.H <= 0 {
+		return svg
+	}
+	minX := viewBox.X
+	minY := viewBox.Y
+	maxX := viewBox.X + viewBox.W
+	maxY := viewBox.Y + viewBox.H
+
+	for _, m := range svgTranslatePattern.FindAllStringSubmatch(svg, -1) {
+		if len(m) < 2 {
+			continue
+		}
+		if tx, ok := parseAnyFloat(m[1]); ok {
+			if tx < minX {
+				minX = tx - 10
+			}
+			if tx > maxX {
+				maxX = tx + 10
+			}
+		}
+		if len(m) >= 3 && strings.TrimSpace(m[2]) != "" {
+			if ty, ok := parseAnyFloat(m[2]); ok {
+				if ty < minY {
+					minY = ty - 10
+				}
+				if ty > maxY {
+					maxY = ty + 10
+				}
+			}
+		}
+	}
+
+	if minX >= viewBox.X && minY >= viewBox.Y && maxX <= viewBox.X+viewBox.W && maxY <= viewBox.Y+viewBox.H {
+		return svg
+	}
+	newW := maxX - minX
+	newH := maxY - minY
+	oldVB := fmt.Sprintf(`viewBox="%s %s %s %s"`,
+		formatFloat(viewBox.X), formatFloat(viewBox.Y),
+		formatFloat(viewBox.W), formatFloat(viewBox.H))
+	newVB := fmt.Sprintf(`viewBox="%s %s %s %s"`,
+		formatFloat(minX), formatFloat(minY),
+		formatFloat(newW), formatFloat(newH))
+	return strings.Replace(svg, oldVB, newVB, 1)
 }
 
 func parseIconRobust(svg string) (*oksvg.SvgIcon, error) {

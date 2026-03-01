@@ -207,7 +207,7 @@ func layoutPieFidelity(graph *Graph, theme Theme, config LayoutConfig) Layout {
 	}
 	palette := theme.PieColors
 	if len(palette) == 0 {
-		palette = []string{"#ECECFF", "#E3E2C8", "#B9EE52", "#CBD5E1"}
+		palette = []string{"#ECECFF", "#FFFFDE", "#B5FF20", "#CBD5E1"}
 	}
 	colorMap := map[string]string{}
 	colorIndex := 0
@@ -293,10 +293,10 @@ func layoutPieFidelity(graph *Graph, theme Theme, config LayoutConfig) Layout {
 
 	height := max(1.0, pieCfg.Height)
 	pieWidth := height
-	radius := max(1.0, min(pieWidth, height)/2.0-pieCfg.Margin+22.0)
-	centerX := pieWidth/2.0 + 21.0
-	centerY := height/2.0 + 19.0
-	legendX := centerX + radius + pieCfg.Margin*0.6
+	radius := max(1.0, min(pieWidth, height)/2.0-pieCfg.Margin)
+	centerX := pieWidth / 2.0
+	centerY := height / 2.0
+	legendX := centerX + radius + pieCfg.Margin*0.75
 
 	for idx, item := range legendItems {
 		vertical := float64(idx)*legendItemHeight - legendOffset
@@ -925,8 +925,8 @@ func layoutJourneyFidelity(graph *Graph, theme Theme, config LayoutConfig) Layou
 		extraVertForTitle = 70
 	}
 
-	layout.ViewBoxX = 17
-	layout.ViewBoxY = -17
+	layout.ViewBoxX = 13
+	layout.ViewBoxY = -21
 	layout.ViewBoxWidth = width
 	layout.ViewBoxHeight = height + extraVertForTitle
 	layout.Width = width
@@ -956,14 +956,14 @@ func layoutTimelineFidelity(graph *Graph, theme Theme, config LayoutConfig) Layo
 		}
 	}
 
-	startX := 190.0
-	topBoxY := 41.0
-	axisY := 158.3078125
-	eventTopY := 241.0
+	startX := 188.0
+	topBoxY := 44.0
+	axisY := 157.8
+	eventTopY := 241.5
 	if title != "" {
 		layout.Texts = append(layout.Texts, LayoutText{
-			X:      35.1,
-			Y:      8,
+			X:      33.1,
+			Y:      9,
 			Value:  title,
 			Anchor: "start",
 			Size:   theme.FontSize * 1.9,
@@ -975,9 +975,12 @@ func layoutTimelineFidelity(graph *Graph, theme Theme, config LayoutConfig) Layo
 	topColors := []string{"#8686ff", "#ffff78"}
 	lineColors := []string{"#ffffb8", "#ababff"}
 	textColors := []string{"#ffffff", "#000000"}
-	sectionClassToken := func(section string) string {
+	sectionClassToken := func(section string, eventIndex int) string {
 		section = strings.TrimSpace(section)
 		if section == "" {
+			if len(graph.TimelineSections) == 0 {
+				return intString(eventIndex - 1)
+			}
 			return "0"
 		}
 		sectionIndex := -1
@@ -1059,7 +1062,7 @@ func layoutTimelineFidelity(graph *Graph, theme Theme, config LayoutConfig) Layo
 			StrokeWidth: 0,
 		})
 		layout.Lines = append(layout.Lines, LayoutLine{
-			Class:       "node-line-" + sectionClassToken(event.Section),
+			Class:       "node-line-" + sectionClassToken(event.Section, i),
 			X1:          x,
 			Y1:          topBoxY + timeBoxH + 5,
 			X2:          x + maxBoxW,
@@ -1093,7 +1096,7 @@ func layoutTimelineFidelity(graph *Graph, theme Theme, config LayoutConfig) Layo
 				StrokeWidth: 0,
 			})
 			layout.Lines = append(layout.Lines, LayoutLine{
-				Class:       "node-line-" + sectionClassToken(event.Section),
+				Class:       "node-line-" + sectionClassToken(event.Section, i),
 				X1:          x,
 				Y1:          ey + eventBoxH + 5,
 				X2:          x + maxBoxW,
@@ -2035,14 +2038,15 @@ func layoutGanttFidelityV2(graph *Graph, theme Theme, config LayoutConfig) Layou
 	}
 
 	const (
-		totalWidth           = 2184.0
-		totalHeight          = 244.0
+		totalWidth           = 1584.0
+		totalHeight          = 148.0
 		titleTopMargin       = 25.0
 		barHeight            = 20.0
 		barGap               = 4.0
 		topPadding           = 50.0
 		leftPadding          = 75.0
 		rightPadding         = 75.0
+		gridTickOffset       = 20.0
 		gridLineStartPadding = 35.0
 		fontSize             = 11.0
 		numberSectionStyles  = 4
@@ -2310,7 +2314,7 @@ func layoutGanttFidelityV2(graph *Graph, theme Theme, config LayoutConfig) Layou
 	for day := minDay; day <= tickEnd; day += 2 {
 		layout.Texts = append(layout.Texts, LayoutText{
 			Class: "gantt-tick-label",
-			X:     scale(float64(day)),
+			X:     scale(float64(day)) + gridTickOffset,
 			Y:     3,
 			Value: formatGanttDate(day),
 			Size:  10,
@@ -2320,7 +2324,7 @@ func layoutGanttFidelityV2(graph *Graph, theme Theme, config LayoutConfig) Layou
 	if tickEnd >= minDay && lastTickDay != tickEnd {
 		layout.Texts = append(layout.Texts, LayoutText{
 			Class: "gantt-tick-label",
-			X:     scale(float64(tickEnd)),
+			X:     scale(float64(tickEnd)) + gridTickOffset,
 			Y:     3,
 			Value: formatGanttDate(tickEnd),
 			Size:  10,
@@ -2330,7 +2334,7 @@ func layoutGanttFidelityV2(graph *Graph, theme Theme, config LayoutConfig) Layou
 	layout.Paths = append(layout.Paths, LayoutPath{
 		Class:  "domain",
 		Stroke: "currentColor",
-		D:      "M0.5,-159V0.5H" + formatFloat(plotWidth+0.5) + "V-159",
+		D:      "M0.5,-" + formatFloat(totalHeight-topPadding-gridLineStartPadding) + "V0.5H" + formatFloat(plotWidth+0.5) + "V-" + formatFloat(totalHeight-topPadding-gridLineStartPadding),
 	})
 
 	// today marker

@@ -1936,6 +1936,24 @@ func renderGanttMermaid(layout Layout) string {
 			break
 		}
 	}
+	gridTranslateY := 194.0
+	tickLineY2 := -159.0
+	if strings.TrimSpace(domainPath) != "" {
+		if parts := strings.Split(domainPath, "V"); len(parts) >= 3 {
+			rawTop := strings.TrimPrefix(parts[0], "M0.5,-")
+			if v, err := strconv.ParseFloat(rawTop, 64); err == nil {
+				tickLineY2 = -v
+			}
+		}
+		if parts := strings.Split(domainPath, "H"); len(parts) >= 2 {
+			if strings.HasPrefix(parts[0], "M0.5,-") {
+				rawTop := strings.TrimPrefix(parts[0], "M0.5,-")
+				if v, err := strconv.ParseFloat(rawTop, 64); err == nil {
+					gridTranslateY = max(0.0, 35.0+v)
+				}
+			}
+		}
+	}
 
 	sectionRects := make([]LayoutRect, 0)
 	taskRects := make([]LayoutRect, 0)
@@ -1959,7 +1977,7 @@ func renderGanttMermaid(layout Layout) string {
 		}
 	}
 
-	b.WriteString(`<g class="grid" transform="translate(75, 194)" fill="none" font-size="10" font-family="sans-serif" text-anchor="middle">`)
+	b.WriteString(`<g class="grid" transform="translate(75, ` + formatFloat(gridTranslateY) + `)" fill="none" font-size="10" font-family="sans-serif" text-anchor="middle">`)
 	b.WriteString("\n")
 	if strings.TrimSpace(domainPath) != "" {
 		b.WriteString(`<path class="domain" stroke="currentColor" d="` + html.EscapeString(domainPath) + `"></path>`)
@@ -1968,7 +1986,7 @@ func renderGanttMermaid(layout Layout) string {
 	for _, tick := range tickTexts {
 		tickX := math.Round(tick.X) + 0.5
 		b.WriteString(`<g class="tick" opacity="1" transform="translate(` + formatFloat(tickX) + `,0)">`)
-		b.WriteString(`<line stroke="currentColor" y2="-159"></line>`)
+		b.WriteString(`<line stroke="currentColor" y2="` + formatFloat(tickLineY2) + `"></line>`)
 		b.WriteString(`<text fill="#000" y="3" dy="1em" stroke="none" font-size="10" style="text-anchor: middle;">`)
 		b.WriteString(html.EscapeString(tick.Value))
 		b.WriteString(`</text></g>`)
@@ -3358,6 +3376,10 @@ func radarStyleCSS() string {
 	}
 	b.WriteString(`#my-svg :root{--mermaid-font-family:"trebuchet ms",verdana,arial,sans-serif;}`)
 	return b.String()
+}
+
+func erStyleCSS() string {
+	return genericMermaidBaseCSS() + `#my-svg .er.entityBox{fill:#ECECFF;stroke:hsl(240, 60%, 86.2745098039%);}#my-svg .er.attributeBoxEven,#my-svg .er.attributeBoxOdd{fill:#ECECFF;stroke:hsl(240, 60%, 86.2745098039%);}#my-svg .er.entityLabel{fill:#131300;}#my-svg .er.attributeText,#my-svg .er.relationshipLabelBox span{fill:#131300;}#my-svg .er.relationshipLabelBox{fill:#ECECFF;stroke:hsl(240, 60%, 86.2745098039%);}#my-svg .er.relationshipLabelBox{opacity:1;}#my-svg .er.relationshipLabelBox rect{opacity:1;}#my-svg .er.relationshipLine{stroke:#333333;}#my-svg .er.relationshipLine path{stroke:#333333;}#my-svg .er.relationshipLine:hover{stroke:#333333;}#my-svg :root{--mermaid-font-family:"trebuchet ms",verdana,arial,sans-serif;}`
 }
 
 func requirementStyleCSS() string {

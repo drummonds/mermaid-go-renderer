@@ -80,7 +80,7 @@ func MermaidDefaultTheme() Theme {
 	primaryColor := "#ECECFF"
 	secondaryColor := "#FFFFDE"
 	tertiaryColor := "#ECECFF"
-	pieColors := []string{"#F2F2FF", "#FFFFE8", "#CBFF63"}
+	pieColors := []string{"#ECECFF", "#FFFFDE", "#B5FF20"}
 	return Theme{
 		Background:               "#FFFFFF",
 		PrimaryColor:             primaryColor,
@@ -113,7 +113,7 @@ func MermaidDefaultTheme() Theme {
 		PieStrokeWidth:           2.0,
 		PieOuterStrokeWidth:      2.0,
 		PieOuterStrokeColor:      "#000000",
-		PieOpacity:               1.0,
+		PieOpacity:               0.7,
 	}
 }
 
@@ -182,10 +182,10 @@ type PieConfig struct {
 func DefaultPieConfig() PieConfig {
 	return PieConfig{
 		TextPosition:               0.75,
-		Height:                     360.0,
-		Margin:                     28.0,
-		LegendRectSize:             14.0,
-		LegendSpacing:              3.0,
+		Height:                     450.0,
+		Margin:                     40.0,
+		LegendRectSize:             18.0,
+		LegendSpacing:              4.0,
 		LegendHorizontalMultiplier: 10.0,
 		MinPercent:                 1.0,
 		UseMaxWidth:                true,
@@ -286,10 +286,10 @@ func DefaultGitGraphConfig() GitGraphConfig {
 		ShowBranches:                           true,
 		RotateCommitLabel:                      true,
 		ParallelCommits:                        false,
-		CommitStep:                             34.0,
+		CommitStep:                             36.0,
 		LayoutOffset:                           8.0,
 		DefaultPos:                             24.0,
-		BranchSpacing:                          40.0,
+		BranchSpacing:                          45.0,
 		BranchSpacingRotateExtra:               32.0,
 		BranchLabelRotateExtra:                 24.0,
 		BranchLabelTranslateX:                  -16.0,

@@ -66,10 +66,8 @@ type svgViewBox struct {
 	H float64
 }
 
-var rasterizeSVGToImageFunc = rasterizeSVGToImageLegacy
-
 func rasterizeSVGToImage(svg string, width int, height int) (*image.NRGBA, error) {
-	return rasterizeSVGToImageFunc(svg, width, height)
+	return rasterizeSVGToImageResvg(svg, width, height)
 }
 
 func rasterizeSVGToImageLegacy(svg string, width int, height int) (*image.NRGBA, error) {
@@ -449,6 +447,7 @@ func overlaySVGForeignObjectText(img *image.NRGBA, svg string, width int, height
 	}
 	scaleX := float64(width) / viewBox.W
 	scaleY := float64(height) / viewBox.H
+	mindmapCenteredText := strings.Contains(svg, "mindmapDiagram")
 
 	for _, label := range extractForeignObjectLabels(svg, viewBox) {
 		face := resolveRasterFontFace(label.FontFamily, max(8.0, label.FontSize*scaleY))
@@ -463,6 +462,12 @@ func overlaySVGForeignObjectText(img *image.NRGBA, svg string, width int, height
 			Src:  image.NewUniform(textColor),
 			Face: face,
 		}
+		if mindmapCenteredText && label.W > 0 {
+			textWidth := float64(drawer.MeasureString(label.Text)) / 64.0
+			boxWidth := label.W * scaleX
+			px += (boxWidth - textWidth) / 2.0
+			px += 13.0
+		}
 		drawer.Dot = fixed.P(int(math.Round(px)), int(math.Round(py)))
 		drawer.DrawString(label.Text)
 	}
@@ -471,6 +476,7 @@ func overlaySVGForeignObjectText(img *image.NRGBA, svg string, width int, height
 type foreignObjectLabel struct {
 	X          float64
 	Y          float64
+	W          float64
 	H          float64
 	Text       string
 	FontSize   float64
@@ -567,6 +573,7 @@ func extractForeignObjectLabels(svg string, viewBox svgViewBox) []foreignObjectL
 					labels = append(labels, foreignObjectLabel{
 						X:          current.BaseX + current.X,
 						Y:          current.BaseY + current.Y,
+						W:          current.W,
 						H:          current.H,
 						Text:       text,
 						FontSize:   current.FontSize,

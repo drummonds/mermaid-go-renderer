@@ -11,10 +11,6 @@ import (
 	"github.com/xo/resvg"
 )
 
-func init() {
-	rasterizeSVGToImageFunc = rasterizeSVGToImageResvg
-}
-
 func rasterizeSVGToImageResvg(svg string, width int, height int) (*image.NRGBA, error) {
 	if width <= 0 || height <= 0 {
 		return nil, fmt.Errorf("invalid image size %dx%d", width, height)

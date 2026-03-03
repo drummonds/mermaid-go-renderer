@@ -15,6 +15,13 @@ import (
 	mermaid "github.com/bvolpato/mermaid-go-renderer"
 )
 
+// Set by goreleaser ldflags or `go build -ldflags`.
+var (
+	version = "dev"
+	commit  = "unknown"
+	date    = "unknown"
+)
+
 func main() {
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
@@ -35,6 +42,7 @@ func run() error {
 		timing               bool
 		fastText             bool
 		dumpAST              bool
+		showVersion          bool
 	)
 
 	fs := flag.NewFlagSet("mmdg", flag.ContinueOnError)
@@ -50,8 +58,14 @@ func run() error {
 	fs.BoolVar(&timing, "timing", false, "print timing as JSON to stderr")
 	fs.BoolVar(&fastText, "fastText", false, "use fast text width approximation")
 	fs.BoolVar(&dumpAST, "dump-ast", false, "print parsed graph as JSON and exit")
+	fs.BoolVar(&showVersion, "version", false, "print version and exit")
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		return err
+	}
+
+	if showVersion {
+		fmt.Printf("mmdg %s (commit %s, built %s)\n", version, commit, date)
+		return nil
 	}
 
 	_ = width

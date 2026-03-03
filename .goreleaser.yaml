@@ -37,22 +37,4 @@ checksum:
 changelog:
   use: git
 
-brews:
-  - repository:
-      owner: bvolpato
-      name: homebrew-tap
-      branch: main
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    name: mmdg
-    commit_author:
-      name: Bruno Volpato
-      email: brunocvcunha@gmail.com
-    directory: Formula
-    homepage: "https://github.com/bvolpato/mermaid-go-renderer"
-    description: "Native Mermaid renderer in Go without browser/chromium"
-    license: "MIT"
-    test: |
-      (testpath/"diagram.mmd").write("flowchart LR\nA --> B\n")
-      system "#{bin}/mmdg", "-i", testpath/"diagram.mmd", "-o", testpath/"out.svg", "-e", "svg"
-      assert_predicate testpath/"out.svg", :exist?
 

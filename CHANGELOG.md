@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-03-03
+
 ## [0.1.3] - 2026-03-03
 
  - Updating gitignore

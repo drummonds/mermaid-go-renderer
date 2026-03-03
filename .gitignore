@@ -1,0 +1,10 @@
+# Build artifacts
+mmdg
+dist/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store

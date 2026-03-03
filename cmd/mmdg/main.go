@@ -34,6 +34,7 @@ func run() error {
 		rankSpacing          float64
 		timing               bool
 		fastText             bool
+		dumpAST              bool
 	)
 
 	fs := flag.NewFlagSet("mmdg", flag.ContinueOnError)
@@ -48,6 +49,7 @@ func run() error {
 	fs.Float64Var(&rankSpacing, "rankSpacing", 0, "rank spacing")
 	fs.BoolVar(&timing, "timing", false, "print timing as JSON to stderr")
 	fs.BoolVar(&fastText, "fastText", false, "use fast text width approximation")
+	fs.BoolVar(&dumpAST, "dump-ast", false, "print parsed graph as JSON and exit")
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		return err
 	}
@@ -58,6 +60,24 @@ func run() error {
 	input, markdown, err := readInput(inputPath)
 	if err != nil {
 		return err
+	}
+
+	if dumpAST {
+		src := input
+		if markdown {
+			blocks := mermaid.ExtractMermaidBlocks(input)
+			if len(blocks) == 0 {
+				return errors.New("no Mermaid blocks found in markdown input")
+			}
+			src = blocks[0]
+		}
+		parsed, parseErr := mermaid.ParseMermaid(src)
+		if parseErr != nil {
+			return parseErr
+		}
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(parsed.Graph)
 	}
 
 	options := mermaid.DefaultRenderOptions()

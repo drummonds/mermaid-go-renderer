@@ -9,8 +9,10 @@ import (
 
 func ComputeLayout(graph *Graph, theme Theme, config LayoutConfig) Layout {
 	switch graph.Kind {
+	case DiagramC4:
+		return layoutC4(graph, theme, config)
 	case DiagramFlowchart, DiagramClass, DiagramState, DiagramER, DiagramRequirement,
-		DiagramC4, DiagramSankey, DiagramZenUML, DiagramBlock, DiagramPacket,
+		DiagramSankey, DiagramZenUML, DiagramBlock, DiagramPacket,
 		DiagramKanban, DiagramArchitecture, DiagramRadar, DiagramTreemap:
 		return layoutGraphLike(graph, theme, config)
 	case DiagramSequence:

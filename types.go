@@ -161,6 +161,55 @@ type QuadrantPoint struct {
 	Y     float64
 }
 
+type C4ElementKind string
+
+const (
+	C4Person            C4ElementKind = "person"
+	C4PersonExt         C4ElementKind = "person_ext"
+	C4System            C4ElementKind = "system"
+	C4SystemDb          C4ElementKind = "system_db"
+	C4SystemQueue       C4ElementKind = "system_queue"
+	C4SystemExt         C4ElementKind = "system_ext"
+	C4SystemDbExt       C4ElementKind = "system_db_ext"
+	C4SystemQueueExt    C4ElementKind = "system_queue_ext"
+	C4Container         C4ElementKind = "container"
+	C4ContainerDb       C4ElementKind = "container_db"
+	C4ContainerQueue    C4ElementKind = "container_queue"
+	C4ContainerExt      C4ElementKind = "container_ext"
+	C4ContainerDbExt    C4ElementKind = "container_db_ext"
+	C4ContainerQueueExt C4ElementKind = "container_queue_ext"
+	C4Component         C4ElementKind = "component"
+	C4ComponentDb       C4ElementKind = "component_db"
+	C4ComponentQueue    C4ElementKind = "component_queue"
+	C4ComponentExt      C4ElementKind = "component_ext"
+	C4ComponentDbExt    C4ElementKind = "component_db_ext"
+	C4ComponentQueueExt C4ElementKind = "component_queue_ext"
+)
+
+type C4Element struct {
+	Alias       string
+	Label       string
+	Technology  string
+	Description string
+	Kind        C4ElementKind
+	Boundary    string // parent boundary alias, "" = top-level
+}
+
+type C4Boundary struct {
+	Alias  string
+	Label  string
+	Parent string // parent boundary alias for nesting
+}
+
+type C4Rel struct {
+	From       string
+	To         string
+	Label      string
+	Technology string
+	Direction  string // "", "up", "down", "left", "right", "back"
+	BiDir      bool
+}
+
 type Graph struct {
 	Kind      DiagramKind
 	Direction Direction
@@ -169,6 +218,13 @@ type Graph struct {
 	Nodes     map[string]Node
 	NodeOrder []string
 	Edges     []Edge
+
+	C4Title            string
+	C4Elements         []C4Element
+	C4Boundaries       []C4Boundary
+	C4Rels             []C4Rel
+	C4ShapesPerRow     int
+	C4BoundariesPerRow int
 
 	SequenceParticipants []string
 	SequenceMessages     []SequenceMessage
@@ -255,7 +311,7 @@ func (g *Graph) addEdge(e Edge) {
 func (k DiagramKind) IsGraphLike() bool {
 	switch k {
 	case DiagramFlowchart, DiagramClass, DiagramState, DiagramER, DiagramRequirement,
-		DiagramC4, DiagramSankey, DiagramZenUML, DiagramBlock, DiagramPacket,
+		DiagramSankey, DiagramZenUML, DiagramBlock, DiagramPacket,
 		DiagramKanban, DiagramArchitecture, DiagramRadar, DiagramTreemap:
 		return true
 	default:

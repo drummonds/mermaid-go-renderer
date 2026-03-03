@@ -1,0 +1,10 @@
+C4Container
+    title Model Bank - Container Diagram
+
+    Person(customer, "Bank Customer")
+
+    System_Boundary(bank, "Model Bank") {
+        Container(web, "Web UI", "Go WASM + Bulma", "Browser-based dashboard")
+    }
+
+    System_Ext(fps, "mock-fps", "FPS simulator")

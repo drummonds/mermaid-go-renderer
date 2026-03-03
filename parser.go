@@ -38,7 +38,7 @@ func ParseMermaid(input string) (ParseOutput, error) {
 	case DiagramGitGraph:
 		return parseGitGraph(input)
 	case DiagramC4:
-		return parseClassLike(input, DiagramC4)
+		return parseC4(input)
 	case DiagramSankey:
 		return parseClassLike(input, DiagramSankey)
 	case DiagramQuadrant:

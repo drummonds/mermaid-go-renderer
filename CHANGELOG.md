@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-03-03
+
+ - Updating gitignore
+
 ## [0.1.2] - 2026-03-03
 
  - Removing dependence on brew

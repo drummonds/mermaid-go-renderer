@@ -1,0 +1,39 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  MODULE: github.com/drummonds/mermaid-go-renderer
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list-all
+    silent: true
+
+  check:
+    desc: Run vet and tests
+    cmds:
+      - go vet ./...
+      - go test ./...
+
+  build:docs:
+    desc: Generate docs/demos.html from testdata
+    cmds:
+      - go run ./cmd/mmdg-demos
+
+  install:
+    desc: Install mmdg from current branch (local build)
+    cmds:
+      - go install ./cmd/mmdg
+
+  install:upstream:
+    desc: Install mmdg from upstream latest release
+    cmds:
+      - go install github.com/bvolpato/mermaid-go-renderer/cmd/mmdg@latest
+
+  install:fork:
+    desc: Install mmdg from drummonds fork (drummonds branch)
+    cmds:
+      - go install {{.MODULE}}/cmd/mmdg@drummonds

@@ -1,0 +1,22 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  GREETING: Hello, World!
+
+tasks:
+  default:
+    cmds:
+      - echo "{{.GREETING}}"
+    silent: true
+
+  demos:
+    desc: Generate docs/demos.html from testdata
+    cmds:
+      - go run ./cmd/mmdg-demos
+
+  check:
+    cmds:
+      - go vet ./...
+      - go test ./...

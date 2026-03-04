@@ -136,7 +136,7 @@ Current parser and renderer paths detect and handle Mermaid families including:
 - Flowchart, Sequence, Class, State, ER, Pie
 - Mindmap, Journey, Timeline, Gantt, Git Graph
 - XY Chart, Quadrant
-- Requirement, C4, Sankey, ZenUML, Block, Packet, Kanban, Architecture, Radar, Treemap
+- Requirement, C4 ([notation](https://c4model.com/diagrams/notation)), Sankey, ZenUML, Block, Packet, Kanban, Architecture, Radar, Treemap
 
 ## Library Usage
 

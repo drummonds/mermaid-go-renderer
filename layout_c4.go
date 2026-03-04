@@ -40,6 +40,10 @@ func c4ElementColors(kind C4ElementKind) (fill, text string) {
 	}
 }
 
+func isPersonKind(kind C4ElementKind) bool {
+	return kind == C4Person || kind == C4PersonExt
+}
+
 func isDbKind(kind C4ElementKind) bool {
 	switch kind {
 	case C4SystemDb, C4SystemDbExt, C4ContainerDb, C4ContainerDbExt, C4ComponentDb, C4ComponentDbExt:
@@ -172,7 +176,9 @@ func layoutC4(graph *Graph, theme Theme, _ LayoutConfig) Layout {
 		}
 		fill, textColor := c4ElementColors(elem.Kind)
 
-		if isDbKind(elem.Kind) {
+		if isPersonKind(elem.Kind) {
+			addC4Person(&layout, pos.x, pos.y, pos.w, pos.h, fill)
+		} else if isDbKind(elem.Kind) {
 			// Cylinder shape for database types
 			addC4Cylinder(&layout, pos.x, pos.y, pos.w, pos.h, fill)
 		} else {
@@ -190,7 +196,11 @@ func layoutC4(graph *Graph, theme Theme, _ LayoutConfig) Layout {
 		}
 
 		// Multi-line text: Label (bold), [Technology], Description
+		// Person shapes have a head circle on top, so push text down
 		lineY := pos.y + 30
+		if isPersonKind(elem.Kind) {
+			lineY = pos.y + 48
+		}
 		// Label
 		layout.Texts = append(layout.Texts, LayoutText{
 			X:      pos.x + pos.w/2,
@@ -227,16 +237,23 @@ func layoutC4(graph *Graph, theme Theme, _ LayoutConfig) Layout {
 		}
 	}
 
-	// Render relationships
-	for _, rel := range graph.C4Rels {
-		from, okFrom := positioned[rel.From]
-		to, okTo := positioned[rel.To]
-		if !okFrom || !okTo {
-			continue
+	// Collect boundary rects for crossing detection
+	var boundaryRects []LayoutRect
+	for _, r := range layout.Rects {
+		if r.Dashed {
+			boundaryRects = append(boundaryRects, r)
 		}
+	}
 
-		x1, y1 := c4ConnPoint(from, to)
-		x2, y2 := c4ConnPoint(to, from)
+	// Optimize relationship connections to minimize crossings
+	optimized := c4OptimizeConnections(graph.C4Rels, positioned, boundaryRects)
+
+	for i, rel := range graph.C4Rels {
+		pts := optimized[i]
+		x1, y1, x2, y2 := pts[0], pts[1], pts[2], pts[3]
+		if x1 == 0 && y1 == 0 && x2 == 0 && y2 == 0 {
+			continue // from/to not found
+		}
 
 		layout.Lines = append(layout.Lines, LayoutLine{
 			X1:          x1,
@@ -321,35 +338,139 @@ func layoutC4Row(elems []C4Element, startX, startY, elemW, elemH, spacingX float
 	return maxW
 }
 
-// c4ConnPoint computes the connection point on the border of 'from' facing 'to'.
-func c4ConnPoint(from, to c4Positioned) (float64, float64) {
-	fcx := from.x + from.w/2
-	fcy := from.y + from.h/2
-	tcx := to.x + to.w/2
-	tcy := to.y + to.h/2
-
-	dx := tcx - fcx
-	dy := tcy - fcy
-	if dx == 0 && dy == 0 {
-		return fcx, fcy
+// c4EdgeCenters returns the midpoints of each edge: top, bottom, left, right.
+func c4EdgeCenters(pos c4Positioned) [4][2]float64 {
+	cx := pos.x + pos.w/2
+	cy := pos.y + pos.h/2
+	return [4][2]float64{
+		{cx, pos.y},          // top
+		{cx, pos.y + pos.h},  // bottom
+		{pos.x, cy},          // left
+		{pos.x + pos.w, cy},  // right
 	}
+}
 
-	// Determine which edge of the rect to use
-	absDx := math.Abs(dx)
-	absDy := math.Abs(dy)
+// segmentIntersectsRect tests whether line segment (x1,y1)-(x2,y2) intersects
+// axis-aligned rectangle (rx,ry,rw,rh) using the Liang-Barsky algorithm.
+func segmentIntersectsRect(x1, y1, x2, y2, rx, ry, rw, rh float64) bool {
+	dx := x2 - x1
+	dy := y2 - y1
+	p := [4]float64{-dx, dx, -dy, dy}
+	q := [4]float64{x1 - rx, rx + rw - x1, y1 - ry, ry + rh - y1}
 
-	if absDx/from.w > absDy/from.h {
-		// Horizontal edge
-		if dx > 0 {
-			return from.x + from.w, fcy + dy*(from.w/2)/absDx
+	tMin := 0.0
+	tMax := 1.0
+	for i := range 4 {
+		if p[i] == 0 {
+			if q[i] < 0 {
+				return false // parallel and outside
+			}
+			continue
 		}
-		return from.x, fcy - dy*(from.w/2)/absDx
+		t := q[i] / p[i]
+		if p[i] < 0 {
+			if t > tMin {
+				tMin = t
+			}
+		} else {
+			if t < tMax {
+				tMax = t
+			}
+		}
+		if tMin > tMax {
+			return false
+		}
 	}
-	// Vertical edge
-	if dy > 0 {
-		return fcx + dx*(from.h/2)/absDy, from.y + from.h
+	return true
+}
+
+// c4OptimizeConnections picks the best edge-center pair for each relationship
+// by minimizing crossings with other boxes, breaking ties by shortest distance.
+func c4OptimizeConnections(rels []C4Rel, positioned map[string]c4Positioned, boundaryRects []LayoutRect) [][4]float64 {
+	results := make([][4]float64, len(rels))
+
+	// Build list of obstacle rects (all positioned elements + boundary rects)
+	type rect struct{ x, y, w, h float64 }
+	obstacles := make([]rect, 0, len(positioned)+len(boundaryRects))
+	for _, p := range positioned {
+		obstacles = append(obstacles, rect{p.x, p.y, p.w, p.h})
 	}
-	return fcx - dx*(from.h/2)/absDy, from.y
+	for _, br := range boundaryRects {
+		obstacles = append(obstacles, rect{br.X, br.Y, br.W, br.H})
+	}
+
+	for i, rel := range rels {
+		from, okFrom := positioned[rel.From]
+		to, okTo := positioned[rel.To]
+		if !okFrom || !okTo {
+			continue
+		}
+
+		fromPts := c4EdgeCenters(from)
+		toPts := c4EdgeCenters(to)
+
+		bestCrossings := math.MaxInt
+		bestDist := math.MaxFloat64
+		var best [4]float64
+
+		fromRect := rect{from.x, from.y, from.w, from.h}
+		toRect := rect{to.x, to.y, to.w, to.h}
+
+		for _, fp := range fromPts {
+			for _, tp := range toPts {
+				crossings := 0
+				for _, obs := range obstacles {
+					// Skip the from and to boxes themselves
+					if obs == fromRect || obs == toRect {
+						continue
+					}
+					if segmentIntersectsRect(fp[0], fp[1], tp[0], tp[1], obs.x, obs.y, obs.w, obs.h) {
+						crossings++
+					}
+				}
+				dist := math.Hypot(tp[0]-fp[0], tp[1]-fp[1])
+				if crossings < bestCrossings || (crossings == bestCrossings && dist < bestDist) {
+					bestCrossings = crossings
+					bestDist = dist
+					best = [4]float64{fp[0], fp[1], tp[0], tp[1]}
+				}
+			}
+		}
+		results[i] = best
+	}
+	return results
+}
+
+// addC4Person renders a person shape: circle head on top of a rounded-rect body.
+func addC4Person(layout *Layout, x, y, w, h float64, fill string) {
+	headR := 20.0
+	headCX := x + w/2
+	headCY := y + headR
+
+	// Head circle
+	layout.Circles = append(layout.Circles, LayoutCircle{
+		CX:          headCX,
+		CY:          headCY,
+		R:           headR,
+		Fill:        fill,
+		Stroke:      fill,
+		StrokeWidth: 1,
+	})
+
+	// Body rect below head
+	bodyY := y + headR*2 - 4 // slight overlap with head
+	bodyH := h - headR*2 + 4
+	layout.Rects = append(layout.Rects, LayoutRect{
+		X:           x,
+		Y:           bodyY,
+		W:           w,
+		H:           bodyH,
+		RX:          8,
+		RY:          8,
+		Fill:        fill,
+		Stroke:      fill,
+		StrokeWidth: 1,
+	})
 }
 
 // addC4Cylinder renders a cylinder (database) shape using paths.

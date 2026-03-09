@@ -319,3 +319,12 @@ Release workflow on tag (`v*`) does:
 Required GitHub secret:
 
 - `HOMEBREW_TAP_GITHUB_TOKEN` (token with write access to the tap repository)
+
+## Links
+
+| | |
+|---|---|
+| Documentation | https://h3-mermaid-go-renderer.statichost.page/ |
+| Source (Codeberg) | https://codeberg.org/hum3/mermaid-go-renderer |
+| Mirror (GitHub) | https://github.com/drummonds/mermaid-go-renderer |
+| Docs repo | https://codeberg.org/hum3/mermaid-go-renderer-docs |

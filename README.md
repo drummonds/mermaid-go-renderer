@@ -4,8 +4,8 @@
 
 **Fast native Mermaid rendering in Go. No browser, no Chromium.**
 
-[![CI](https://github.com/bvolpato/mermaid-go-renderer/actions/workflows/ci.yml/badge.svg)](https://github.com/bvolpato/mermaid-go-renderer/actions/workflows/ci.yml)
-[![Release](https://github.com/bvolpato/mermaid-go-renderer/actions/workflows/release.yml/badge.svg)](https://github.com/bvolpato/mermaid-go-renderer/actions/workflows/release.yml)
+[![CI](https://codeberg.org/hum3/mermaid-go-renderer/actions/workflows/ci.yml/badge.svg)](https://codeberg.org/hum3/mermaid-go-renderer/actions/workflows/ci.yml)
+[![Release](https://codeberg.org/hum3/mermaid-go-renderer/actions/workflows/release.yml/badge.svg)](https://codeberg.org/hum3/mermaid-go-renderer/actions/workflows/release.yml)
 
 [Installation](#installation) | [CLI Usage](#cli-usage) | [Fidelity](#fidelity-mmdc-first) | [Performance](#performance) | [Library Usage](#library-usage) | [Release and Homebrew](#release-and-homebrew)
 
@@ -150,13 +150,13 @@ brew upgrade mmdg
 
 Pick the archive for your OS/arch from:
 
-- `https://github.com/bvolpato/mermaid-go-renderer/releases/latest`
+- `https://codeberg.org/hum3/mermaid-go-renderer/releases/latest`
 
 Example (`darwin_arm64`):
 
 ```bash
 VERSION="v0.2.0" # replace with the version you want
-curl -L "https://github.com/bvolpato/mermaid-go-renderer/releases/download/${VERSION}/mermaid-go-renderer_${VERSION#v}_darwin_arm64.tar.gz" -o mmdg.tar.gz
+curl -L "https://codeberg.org/hum3/mermaid-go-renderer/releases/download/${VERSION}/mermaid-go-renderer_${VERSION#v}_darwin_arm64.tar.gz" -o mmdg.tar.gz
 tar -xzf mmdg.tar.gz
 chmod +x mmdg
 sudo mv mmdg /usr/local/bin/mmdg
@@ -172,7 +172,7 @@ which -a mmdg
 ### Build locally
 
 ```bash
-git clone https://github.com/bvolpato/mermaid-go-renderer
+git clone https://codeberg.org/hum3/mermaid-go-renderer
 cd mermaid-go-renderer
 go build ./cmd/mmdg
 ```
@@ -180,7 +180,7 @@ go build ./cmd/mmdg
 ### Install with `go install`
 
 ```bash
-go install github.com/bvolpato/mermaid-go-renderer/cmd/mmdg@latest
+go install codeberg.org/hum3/mermaid-go-renderer/cmd/mmdg@latest
 ```
 
 ## CLI Usage
@@ -231,7 +231,7 @@ Current parser and renderer paths detect and handle Mermaid families including:
 Add the dependency:
 
 ```bash
-go get github.com/bvolpato/mermaid-go-renderer@latest
+go get codeberg.org/hum3/mermaid-go-renderer@latest
 ```
 
 Simple API:
@@ -242,7 +242,7 @@ package main
 import (
 	"fmt"
 
-	mermaid "github.com/bvolpato/mermaid-go-renderer"
+	mermaid "codeberg.org/hum3/mermaid-go-renderer"
 )
 
 func main() {
@@ -260,7 +260,7 @@ Write PNG directly from Go:
 package main
 
 import (
-	mermaid "github.com/bvolpato/mermaid-go-renderer"
+	mermaid "codeberg.org/hum3/mermaid-go-renderer"
 )
 
 func main() {
@@ -327,4 +327,3 @@ Required GitHub secret:
 | Documentation | https://h3-mermaid-go-renderer.statichost.page/ |
 | Source (Codeberg) | https://codeberg.org/hum3/mermaid-go-renderer |
 | Mirror (GitHub) | https://github.com/drummonds/mermaid-go-renderer |
-| Docs repo | https://codeberg.org/hum3/mermaid-go-renderer-docs |

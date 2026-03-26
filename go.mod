@@ -1,4 +1,4 @@
-module github.com/bvolpato/mermaid-go-renderer
+module codeberg.org/hum3/mermaid-go-renderer
 
 go 1.24
 

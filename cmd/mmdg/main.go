@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	mermaid "github.com/bvolpato/mermaid-go-renderer"
+	mermaid "codeberg.org/hum3/mermaid-go-renderer"
 )
 
 func main() {
